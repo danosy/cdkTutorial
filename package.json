@@ -11,17 +11,25 @@
     "cdk": "cdk"
   },
   "devDependencies": {
-    "@aws-cdk/assert": "1.94.1",
+    "@aws-cdk/assert": "^1.94.1",
     "@types/jest": "^26.0.10",
     "@types/node": "10.17.27",
+    "aws-cdk": "1.94.1",
     "jest": "^26.4.2",
     "ts-jest": "^26.2.0",
-    "aws-cdk": "1.94.1",
     "ts-node": "^9.0.0",
     "typescript": "~3.9.7"
   },
   "dependencies": {
+    "@aws-cdk/aws-apigatewayv2": "^1.94.1",
+    "@aws-cdk/aws-apigatewayv2-integrations": "^1.94.1",
+    "@aws-cdk/aws-cloudfront": "^1.94.1",
+    "@aws-cdk/aws-iam": "^1.94.1",
+    "@aws-cdk/aws-lambda-nodejs": "^1.94.1",
+    "@aws-cdk/aws-s3": "^1.94.1",
+    "@aws-cdk/aws-s3-deployment": "^1.94.1",
     "@aws-cdk/core": "1.94.1",
+    "npm-windows-upgrade": "^6.0.1",
     "source-map-support": "^0.5.16"
   }
 }
