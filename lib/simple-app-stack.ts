@@ -5,7 +5,7 @@ import {Runtime} from '@aws-cdk/aws-lambda';
 import * as path from "path";
 import {BucketDeployment, Source} from '@aws-cdk/aws-s3-deployment';
 import {PolicyStatement} from "@aws-cdk/aws-iam";
-import {HttpApi, HttpMethod} from "@aws-cdk/aws-apigatewayv2";
+import {CorsHttpMethod, HttpApi, HttpMethod} from "@aws-cdk/aws-apigatewayv2";
 import {LambdaProxyIntegration} from "@aws-cdk/aws-apigatewayv2-integrations";
 import {CloudFrontWebDistribution} from "@aws-cdk/aws-cloudfront"
 
@@ -31,12 +31,7 @@ export class SimpleAppStack extends cdk.Stack {
             publicReadAccess : true
         })
 
-        new BucketDeployment(this, 'MySimpleAppWebsiteDeployment', {
-            sources: [
-                Source.asset(path.join(__dirname, '..', 'frontend', 'build'))
-            ],
-            destinationBucket: websiteBucket
-        })
+
 
         //a lambda function to get photos from the project at: api/get-photos.index.js
         const getPhotos = new lambda.NodejsFunction(this, 'MySimpleAppLambda', {
@@ -64,7 +59,7 @@ export class SimpleAppStack extends cdk.Stack {
         const httpApi = new HttpApi(this, 'MySimpleAppHttpApi', {
             corsPreflight: {
                 allowOrigins: ['*'],
-                allowMethods: [HttpMethod.GET]
+                allowMethods: [CorsHttpMethod.GET]
             },
             apiName: 'photo-api',
             createDefaultStage: true
@@ -91,6 +86,14 @@ export class SimpleAppStack extends cdk.Stack {
                     isDefaultBehavior: true
                 }]
             }]
+        })
+
+        new BucketDeployment(this, 'MySimpleAppWebsiteDeployment', {
+            sources: [
+                Source.asset(path.join(__dirname, '..', 'frontend', 'build'))
+            ],
+            destinationBucket: websiteBucket,
+            distribution: cloudFront
         })
 
         new cdk.CfnOutput(this, "MySimpleAppBucketExport", {
