@@ -7,30 +7,34 @@ import {BucketDeployment, Source} from '@aws-cdk/aws-s3-deployment';
 import {PolicyStatement} from "@aws-cdk/aws-iam";
 import {CorsHttpMethod, HttpApi, HttpMethod} from "@aws-cdk/aws-apigatewayv2";
 import {LambdaProxyIntegration} from "@aws-cdk/aws-apigatewayv2-integrations";
-import {CloudFrontWebDistribution} from "@aws-cdk/aws-cloudfront"
+import * as cloudfront from "@aws-cdk/aws-cloudfront"
+import {ARecord, IPublicHostedZone, RecordTarget} from "@aws-cdk/aws-route53";
+import {ICertificate} from "@aws-cdk/aws-certificatemanager";
+import * as origins from '@aws-cdk/aws-cloudfront-origins';
+import {CloudFrontTarget} from "@aws-cdk/aws-route53-targets";
+import {S3BucketWithDeploy} from "./s3-bucket-with-deploy";
+
+
+interface SimpleAppStackProp extends cdk.StackProps {
+    dnsName: string,
+    hostedZone: IPublicHostedZone,
+    certificate: ICertificate
+}
 
 export class SimpleAppStack extends cdk.Stack {
-    constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
+    constructor(scope: cdk.Construct, id: string, props: SimpleAppStackProp) {
         super(scope, id, props);
 
-        //simple bucket to hold files
-        const bucket = new Bucket(this, "MySimpleAppBucket", {
+        const {bucket} = new S3BucketWithDeploy(this, 'MySimpleAppCustomBucket', {
+            deployTo: ['..', 'photos'],
             encryption: BucketEncryption.S3_MANAGED
-        })
-
-        new BucketDeployment(this, 'MySimpleAppPhotos', {
-            sources: [
-                Source.asset(path.join(__dirname, '..', 'photos'))
-            ],
-            destinationBucket: bucket
         })
 
         //bucket for our app to be deployed too, where we store our files
         const websiteBucket = new Bucket(this, 'MySimpleWebsiteBucket', {
             websiteIndexDocument: 'index.html',
-            publicReadAccess : true
+            publicReadAccess: true
         })
-
 
 
         //a lambda function to get photos from the project at: api/get-photos.index.js
@@ -77,15 +81,17 @@ export class SimpleAppStack extends cdk.Stack {
         })
 
         //cloudfront for better looking url
-        const cloudFront = new CloudFrontWebDistribution(this, 'MySimpleAppDistribution', {
-            originConfigs: [{
-                s3OriginSource: {
-                    s3BucketSource: websiteBucket
-                },
-                behaviors: [{
-                    isDefaultBehavior: true
-                }]
-            }]
+        const cloudFront = new cloudfront.Distribution(this, 'MySimpleAppDistribution', {
+            defaultBehavior: {
+                origin: new origins.S3Origin(websiteBucket),
+            },
+            domainNames: [props.dnsName],
+            certificate: props.certificate
+        });
+
+        new ARecord(this, 'SimpleAppARecord', {
+            zone: props.hostedZone,
+            target: RecordTarget.fromAlias(new CloudFrontTarget(cloudFront))
         })
 
         new BucketDeployment(this, 'MySimpleAppWebsiteDeployment', {
@@ -98,7 +104,7 @@ export class SimpleAppStack extends cdk.Stack {
 
         new cdk.CfnOutput(this, "MySimpleAppBucketExport", {
             value: bucket.bucketName,
-            exportName: "MySimpleAppBucket"
+            exportName: `MySimpleAppBucket`
         })
 
         new cdk.CfnOutput(this, "MySimpleAppWebsiteBucketExport", {
@@ -107,13 +113,13 @@ export class SimpleAppStack extends cdk.Stack {
         })
 
         new cdk.CfnOutput(this, 'MySimpleAppWebsiteUrl', {
-            value : cloudFront.distributionDomainName,
-            exportName: 'mySimpleAppUrl'
+            value: cloudFront.distributionDomainName,
+            exportName: `mySimpleAppUrl`
         })
 
         new cdk.CfnOutput(this, "MySimpleAppApiExport", {
             value: httpApi.url!,
-            exportName: "MySimpleAppApiName"
+            exportName: `MySimpleAppApiName`
         })
     }
 }
